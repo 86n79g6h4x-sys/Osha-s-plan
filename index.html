@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>osha’s plan </title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3ecff;--card:#fff;--ink:#2a1747;--mut:#7a6a99;--pink:#ff4f9a;--mint:#2fcf9b;--sun:#ffd45e;--line:#e4d8fb}
+@media(prefers-color-scheme:dark){:root{--bg:#1c1030;--card:#291a45;--ink:#f4ecff;--mut:#b7a6d9;--line:#3d2a63}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Cairo,system-ui,sans-serif;padding:18px 16px 60px;max-width:560px;margin-inline:auto}
+h1{font-size:26px;font-weight:800;margin:6px 0 2px}
+.date{color:var(--mut);font-weight:600;margin:0 0 14px}
+.hero{display:flex;align-items:center;gap:16px;background:var(--card);border-radius:28px;padding:16px 18px;margin-bottom:18px}
+.ring{--p:0;width:96px;height:96px;border-radius:50%;flex:none;display:grid;place-items:center;background:conic-gradient(var(--pink) calc(var(--p)*1%),var(--line) 0);transition:.4s}
+.ring b{width:74px;height:74px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-size:22px;font-weight:800}
+.msg{font-size:17px;font-weight:600;line-height:1.5;margin:0}
+h2{font-size:16px;margin:20px 4px 8px;color:var(--mut);font-weight:600}
+.item{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:2px solid transparent;border-radius:20px;padding:12px 14px;margin-bottom:8px;width:100%;text-align:right;font:inherit;color:inherit;cursor:pointer}
+.item:focus-visible{outline:3px solid var(--pink)}
+.box{flex:none;width:30px;height:30px;border-radius:10px;border:2.5px solid var(--line);display:grid;place-items:center;font-size:18px;color:#fff;margin-top:2px}
+.item.done{border-color:var(--mint)}
+.item.done .box{background:var(--mint);border-color:var(--mint)}
+.item.done .t{text-decoration:line-through;opacity:.6}
+.time{font-size:13px;color:var(--pink);font-weight:800}
+.t{font-weight:800;font-size:16px}
+.d{font-size:14px;color:var(--mut);line-height:1.6}
+textarea{width:100%;min-height:100px;border-radius:18px;border:2px solid var(--line);background:var(--card);color:var(--ink);font:inherit;padding:12px;resize:vertical}
+.small{font-size:12px;color:var(--mut);margin:6px 4px}
+.link{background:none;border:0;color:var(--mut);font:inherit;text-decoration:underline;cursor:pointer;margin-top:26px}
+.admin .row{background:var(--card);border-radius:18px;padding:12px 14px;margin-bottom:8px}
+.admin .top{display:flex;justify-content:space-between;font-weight:800}
+.bar{height:8px;border-radius:8px;background:var(--line);margin:8px 0;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--mint)}
+.note{background:var(--bg);border-radius:12px;padding:8px 10px;margin-top:6px;font-size:14px;white-space:pre-wrap}
+.toast{position:fixed;inset-inline:16px;bottom:20px;background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:16px;font-weight:600;text-align:center;opacity:0;transform:translateY(20px);transition:.3s;pointer-events:none}
+.toast.on{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+<script>
+/* ===== إعدادات: غيّرهم هنا ===== */
+const CFG = {
+  NAME: "أوشا",
+  ADMIN_PASS: "coach2026",          // باسورد الأدمن (غيّره)
+  DB_URL: ""                        // لينك Firebase Realtime Database (بدون / في الآخر). فاضي = بيحفظ على الجهاز بس
+};
+
+const MEALS = [
+  {id:"m1", time:"8:30 ص", t:"الإفطار الرئيسي", d:"3 بيضات بالزبدة أو زيت الزيتون مع جبن + طبق فول بالسمسم والطحينة والزيت وعصرة ليمون + 2 رغيف بلدي."},
+  {id:"m2", time:"10:30 ص", t:"مخفوق التسمين (1)", d:"1.5 كوب حليب كامل الدسم + 2 موزة + 3 معلقة زبدة فول سوداني + 4 معلقة شوفان + معلقة عسل نحل. (~650 سعرة)"},
+  {id:"m3", time:"2:00 م", t:"الغداء الرئيسي", d:"طبق كشري كبير (عدس، حمص، أرز، مكرونة) أو مجدرة عدس أو فاصوليا بيضاء + معلقة سمن أو زيت زيتون + سلطة بعصرة ليمون."},
+  {id:"m4", time:"5:30 م", t:"مخفوق التسمين (2)", d:"1.5 كوب حليب + 2 معلقة طحينة + قطعتين حلاوة طحينية + معلقة سمسم محمص + معلقة عسل أسود + حفنة مكسرات. (~600 سعرة)"},
+  {id:"m5", time:"8:30 م", t:"العشاء الرئيسي", d:"بطاطس مهروسة بالزبدة والجبن كامل الدسم + 2 بيضة مسلوقة + 2 رغيف (أو سندوتشات حلاوة طحينية بالقشطة والزبدة)."},
+  {id:"m6", time:"11:00 م", t:"سناك قبل النوم", d:"كوب زبادي كامل الدسم + 2 معلقة عسل أسود + معلقة سمسم."}
+];
+const SUPPS = [
+  {id:"s1", time:"بعد الغداء", t:"مكمل الحديد", d:"كبسولة واحدة مع كوب عصير برتقال طازج."},
+  {id:"s2", time:"قبل الوجبات الرئيسية بـ 15 دقيقة", t:"المهضم وفاتح الشهية", d:"قرص واحد. الأحسن تسألي الصيدلي أو الدكتور قبل ما تاخديه."},
+  {id:"s3", time:"مع كل وجبة رئيسية", t:"فيتامين C", d:"عصرة ليمون أو طماطم/فلفل مع الأكل."},
+  {id:"s4", time:"بعد الإفطار (اختياري)", t:"فيتامين B-Complex", d:"كبسولة واحدة في اليوم.", opt:true}
+];
+const ALL = [...MEALS, ...SUPPS];
+const COUNTED = ALL.filter(x => !x.opt);
+
+const keyOf = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+let today = keyOf(new Date());
+let state = {checks:{}, note:""};
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pctOf = c => Math.round(COUNTED.filter(x => c && c[x.id]).length / COUNTED.length * 100);
+
+function msgFor(p){
+  if(p===0) return "يلا يا "+CFG.NAME+" نبدأ يومنا! أول لقمة هي الأصعب 😎💪";
+  if(p<40) return "بداية جامدة! كمّلي كده يا اوشا ";
+  if(p<70) return " نص الطريق يا اوشا افتكري الكوبرا ";
+  if(p<100) return " قربتي أوي! كمان شوية وتخلصي اليوم ";
+  return "يوم كامل 100%!ايوووه يا اوشا هتبقي قد الديل مع ابوكيً 🎉👑";
+}
+const CHEERS = [" عاشش","كل وجبة بتقرّبك لهدفك 💖","شاطرة، كمّلي 🔥","ده الشغل يا ستي! ✨","فخورين بيكي "];
+function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("on");clearTimeout(toast.h);toast.h=setTimeout(()=>e.classList.remove("on"),1800)}
+
+/* ===== التخزين ===== */
+async function load(day){
+  try{
+    if(CFG.DB_URL){const r=await fetch(`${CFG.DB_URL}/days/${day}.json`);const j=await r.json();return j||{checks:{},note:""}}
+  }catch(e){}
+  try{return JSON.parse(localStorage.getItem("diet-"+day))||{checks:{},note:""}}catch(e){return {checks:{},note:""}}
+}
+let saveT;
+function save(){
+  try{localStorage.setItem("diet-"+today,JSON.stringify(state))}catch(e){}
+  clearTimeout(saveT);
+  saveT=setTimeout(()=>{
+    if(!CFG.DB_URL) return;
+    const body=JSON.stringify({checks:state.checks,note:state.note,pct:pctOf(state.checks),updated:Date.now()});
+    fetch(`${CFG.DB_URL}/days/${today}.json`,{method:"PUT",body}).catch(()=>toast("مفيش نت، هيتحفظ على الموبايل"));
+  },500);
+}
+
+/* ===== صفحة أوشا ===== */
+function itemHTML(x){
+  const on = !!state.checks[x.id];
+  return `<button class="item ${on?"done":""}" data-id="${x.id}" aria-pressed="${on}">
+    <span class="box">${on?"✓":""}</span>
+    <span><span class="time">${x.time}</span><br><span class="t">${x.t}</span><div class="d">${x.d}</div></span></button>`;
+}
+function render(){
+  const p = pctOf(state.checks);
+  const dateStr = new Date().toLocaleDateString("ar-EG",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  $("#app").innerHTML = `
+    <h1>إزيك يا ${CFG.NAME} 💖</h1>
+    <p class="date">${dateStr}</p>
+    <div class="hero"><div class="ring" style="--p:${p}"><b>${p}%</b></div><p class="msg">${msgFor(p)}</p></div>
+    <h2>الوجبات</h2>${MEALS.map(itemHTML).join("")}
+    <h2>المكملات</h2>${SUPPS.map(itemHTML).join("")}
+    <h2>ملاحظاتك النهاردة</h2>
+    <textarea id="note" placeholder="اكتبي اللي في دماغك.. حاسة بإيه؟ في حاجة صعبة؟">${esc(state.note||"")}</textarea>
+    <p class="small">الكوتش هيشوف ملاحظاتك 😉</p>
+    <button class="link" id="adm">دخول الأدمن</button>`;
+  document.querySelectorAll(".item").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.id;state.checks[id]=!state.checks[id];
+    if(state.checks[id]) toast(pctOf(state.checks)===100?"يوم كامل! 🎉":CHEERS[Math.floor(Math.random()*CHEERS.length)]);
+    save();const sc=scrollY;render();scrollTo(0,sc);
+  });
+  $("#note").oninput=e=>{state.note=e.target.value;save()};
+  $("#adm").onclick=adminLogin;
+}
+
+/* ===== صفحة الأدمن ===== */
+async function adminLogin(){
+  const p = prompt("باسورد الأدمن:");
+  if(p===null) return;
+  if(p!==CFG.ADMIN_PASS){toast("الباسورد غلط");return}
+  let days={};
+  if(CFG.DB_URL){try{days=(await (await fetch(`${CFG.DB_URL}/days.json`)).json())||{}}catch(e){toast("مش قادر أجيب البيانات")}}
+  else{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith("diet-"))try{days[k.slice(5)]=JSON.parse(localStorage.getItem(k))}catch(e){}}}
+  const keys=Object.keys(days).sort().reverse();
+  const rows=keys.map(k=>{
+    const v=days[k]||{},c=v.checks||{},p=pctOf(c);
+    const miss=COUNTED.filter(x=>!c[x.id]).map(x=>x.t);
+    return `<div class="row"><div class="top"><span>${esc(new Date(k+"T12:00").toLocaleDateString("ar-EG",{weekday:"long",day:"numeric",month:"long"}))}</span><span>${p}%</span></div>
+      <div class="bar"><i style="width:${p}%"></i></div>
+      <div class="d">${miss.length?"ناقص: "+esc(miss.join("، ")):"كل حاجة اتعملت ✅"}</div>
+      ${v.note?`<div class="note">📝 ${esc(v.note)}</div>`:""}</div>`}).join("");
+  const avg=keys.length?Math.round(keys.reduce((s,k)=>s+pctOf((days[k]||{}).checks),0)/keys.length):0;
+  $("#app").innerHTML=`<div class="admin"><h1>لوحة الكوتش 📊</h1>
+    <p class="date">${keys.length} يوم | متوسط الالتزام ${avg}%</p>
+    ${CFG.DB_URL?"":`<p class="small">⚠️ DB_URL فاضي: بتشوف بيانات الجهاز ده بس.</p>`}
+    ${rows||"<p class='d'>لسه مفيش بيانات.</p>"}
+    <button class="link" id="back">رجوع</button></div>`;
+  $("#back").onclick=()=>render();
+}
+
+/* ===== تشغيل + تغيير اليوم تلقائي ===== */
+async function init(){state=await load(today);state.checks=state.checks||{};render()}
+setInterval(async()=>{const k=keyOf(new Date());if(k!==today&&!document.querySelector(".admin")){today=k;await init()}},60000);
+init();
+</script>
+</body>
+</html>
